@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo: Mestre dos Lançamentos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .feedback {
+            transition: opacity 0.5s, transform 0.5s;
+        }
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236B7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.4-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 0.7rem top 50%;
+            background-size: 0.65rem auto;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-2xl mx-auto">
+        <!-- Cabeçalho e Pontuação -->
+        <header class="text-center mb-6">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-indigo-700">Mestre dos Lançamentos</h1>
+            <p class="text-slate-500 mt-2 text-lg">Escolha as contas de Débito e Crédito corretas para o fato contábil.</p>
+            <div id="score" class="mt-4 text-xl font-bold bg-white p-3 rounded-lg shadow-md inline-block">
+                Acertos: <span id="scoreValue" class="text-green-600">0</span> | Tentativas: <span id="attemptsValue" class="text-red-600">0</span>
+            </div>
+        </header>
+
+        <!-- Área do Jogo -->
+        <main class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg w-full">
+            <!-- Cenário -->
+            <div class="bg-slate-50 p-4 rounded-lg mb-6 border border-slate-200">
+                <h2 class="text-lg font-semibold text-slate-700">Fato Contábil:</h2>
+                <p id="transactionDescription" class="text-xl text-slate-900 mt-1"></p>
+            </div>
+
+            <!-- Seleção de Contas -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Débito -->
+                <div>
+                    <label for="debitAccount" class="block text-lg font-bold text-red-600 mb-2">Débito (D)</label>
+                    <select id="debitAccount" class="w-full p-3 border border-gray-300 rounded-lg bg-white text-base focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="">Selecione a conta de débito...</option>
+                    </select>
+                </div>
+                <!-- Crédito -->
+                <div>
+                    <label for="creditAccount" class="block text-lg font-bold text-blue-600 mb-2">Crédito (C)</label>
+                    <select id="creditAccount" class="w-full p-3 border border-gray-300 rounded-lg bg-white text-base focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="">Selecione a conta de crédito...</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Botão e Feedback -->
+            <div class="mt-8 text-center">
+                <button id="confirmButton" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition-all duration-300 transform hover:scale-105">
+                    Confirmar Lançamento
+                </button>
+                <div id="feedback" class="feedback mt-6 text-center text-xl font-bold opacity-0 transform scale-90 h-12"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Fatos contábeis para o jogo - VERSÃO COMPLETA
+        const transactions = [
+            { description: 'Compra de mercadorias para revenda, a prazo.', debit: 'Mercadorias para Revenda', credit: 'Fornecedores Nacionais' },
+            { description: 'Venda de produtos à vista, em dinheiro.', debit: 'Caixa', credit: 'Receita Bruta de Vendas' },
+            { description: 'Pagamento da folha de salários do mês anterior.', debit: 'Salários a Pagar', credit: 'Bancos Conta Movimento' },
+            { description: 'Integralização de Capital Social pelos sócios, em dinheiro.', debit: 'Caixa', credit: 'Capital Subscrito' },
+            { description: 'Reconhecimento da despesa de depreciação de veículos.', debit: 'Despesa com Depreciação', credit: '(-) Depreciação Acumulada' },
+            { description: 'Compra de um computador para o escritório, pago à vista.', debit: 'Móveis e Utensílios', credit: 'Bancos Conta Movimento' },
+            { description: 'Pagamento de uma duplicata a um fornecedor.', debit: 'Fornecedores Nacionais', credit: 'Bancos Conta Movimento' },
+            { description: 'Recebimento de uma duplicata de cliente.', debit: 'Bancos Conta Movimento', credit: 'Duplicatas a Receber' },
+            { description: 'Contratação de um empréstimo bancário de curto prazo.', debit: 'Bancos Conta Movimento', credit: 'Empréstimos Bancários (Curto Prazo)' },
+            { description: 'Pagamento da conta de energia elétrica do escritório.', debit: 'Despesas de Energia Elétrica', credit: 'Bancos Conta Movimento' },
+            { description: 'Venda de serviços a prazo.', debit: 'Duplicatas a Receber', credit: 'Receita de Serviços' },
+            { description: 'Constituição da Provisão para Créditos de Liquidação Duvidosa (PECLD).', debit: 'Despesas com Provisões', credit: '(-) Perdas Estimadas com Créditos de Liquidação Duvidosa' },
+            { description: 'Pagamento antecipado de 6 meses de aluguel.', debit: 'Aluguel Pago Antecipadamente', credit: 'Bancos Conta Movimento' },
+            { description: 'Apropriação de um mês da despesa de aluguel pago antecipadamente.', debit: 'Despesas com Aluguel', credit: 'Aluguel Pago Antecipadamente' },
+            { description: 'Compra de um software para a empresa, a prazo.', debit: 'Software', credit: 'Fornecedores Nacionais' },
+            { description: 'Reconhecimento da despesa de amortização do software.', debit: 'Despesa com Amortização', credit: '(-) Amortização Acumulada' },
+            { description: 'Recebimento de um adiantamento de um cliente para um serviço futuro.', debit: 'Bancos Conta Movimento', credit: 'Adiantamento de Clientes' },
+            { description: 'Reconhecimento do Custo da Mercadoria Vendida (CMV).', debit: 'Custo das Mercadorias Vendidas (CMV)', credit: 'Mercadorias para Revenda' },
+            { description: 'Pagamento de juros sobre empréstimos bancários.', debit: 'Despesas Financeiras (Juros Pagos)', credit: 'Bancos Conta Movimento' },
+            { description: 'Recebimento de juros de aplicações financeiras.', debit: 'Aplicações Financeiras de Liquidez Imediata', credit: 'Receitas Financeiras' },
+            { description: 'Aumento de Capital Social com um terreno.', debit: 'Terrenos', credit: 'Capital Subscrito' },
+            { description: 'Constituição de Reserva Legal (5% do lucro).', debit: 'Lucros/Prejuízos Acumulados', credit: 'Reserva Legal' },
+            { description: 'Declaração de dividendos a serem pagos aos acionistas.', debit: 'Lucros/Prejuízos Acumulados', credit: 'Dividendos a Pagar' },
+            { description: 'Pagamento dos dividendos declarados anteriormente.', debit: 'Dividendos a Pagar', credit: 'Bancos Conta Movimento' },
+            { description: 'Compra de ações da própria empresa (Tesouraria).', debit: '(-) Ações em Tesouraria', credit: 'Bancos Conta Movimento' },
+            { description: 'Reconhecimento da folha de pagamento (salários e encargos).', debit: 'Despesas com Pessoal (Salários)', credit: 'Salários a Pagar' },
+            { description: 'Reconhecimento do ICMS sobre uma venda.', debit: '(-) ICMS sobre Vendas', credit: 'ICMS a Recolher' },
+            { description: 'Reconhecimento do PIS sobre uma venda.', debit: '(-) PIS sobre Faturamento', credit: 'PIS a Recolher' },
+            { description: 'Reconhecimento da COFINS sobre uma venda.', debit: '(-) COFINS sobre Faturamento', credit: 'COFINS a Recolher' },
+            { description: 'Compra de matéria-prima com crédito de ICMS.', debit: 'Matéria-Prima', credit: 'Fornecedores Nacionais' }, // Simplificado para o jogo
+            { description: 'Baixa de um cliente que não pagou, usando a PECLD.', debit: '(-) Perdas Estimadas com Créditos de Liquidação Duvidosa', credit: 'Duplicatas a Receber' },
+            { description: 'Venda de um veículo por valor maior que o contábil (lucro).', debit: 'Caixa', credit: 'Resultado na Venda de Imobilizado (Lucro)' }, // Simplificado
+            { description: 'Venda de um veículo por valor menor que o contábil (prejuízo).', debit: 'Caixa', credit: 'Resultado na Venda de Imobilizado (Prejuízo)' }, // Simplificado
+            { description: 'Pagamento de uma apólice de seguro válida por 12 meses.', debit: 'Prêmios de Seguros a Apropriar', credit: 'Bancos Conta Movimento' },
+            { description: 'Apropriação mensal da despesa de seguro.', debit: 'Despesas com Seguros', credit: 'Prêmios de Seguros a Apropriar' },
+        ];
+
+        // Lista de contas COMPLETA para preencher os selects
+        const accounts = [
+            // Ativo
+            'Caixa', 'Bancos Conta Movimento', 'Aplicações Financeiras de Liquidez Imediata', 'Duplicatas a Receber', '(-) Perdas Estimadas com Créditos de Liquidação Duvidosa', 'Adiantamento a Empregados', 'ICMS a Recuperar', 'PIS a Recuperar', 'COFINS a Recuperar', 'IPI a Recuperar', 'Mercadorias para Revenda', 'Matéria-Prima', 'Produtos em Elaboração', 'Produtos Acabados', 'Adiantamentos a Fornecedores', '(-) Ajuste a Valor Presente (Estoque)', 'Ativos Biológicos (Circulante)', 'Prêmios de Seguros a Apropriar', 'Aluguel Pago Antecipadamente', 'Ativo Não Circulante Mantido para Venda', 'Créditos com Partes Relacionadas (Longo Prazo)', 'IRPJ Diferido (Ativo)', 'CSLL Diferida (Ativo)', 'Participações em Controladas', 'Participações em Coligadas', 'Propriedades para Investimento', 'Terrenos', 'Edificações', 'Máquinas e Equipamentos', 'Veículos', 'Móveis e Utensílios', '(-) Depreciação Acumulada', '(-) Exaustão Acumulada', 'Imobilizado em Andamento', 'Patentes', 'Software', '(-) Amortização Acumulada', 'Intangível em Desenvolvimento', '(-) Perdas Estimadas para Redução ao Valor Recuperável',
+            // Passivo
+            'Fornecedores Nacionais', 'Fornecedores Estrangeiros', 'Salários a Pagar', 'Férias a Pagar', '13º Salários a Pagar', 'INSS a Recolher', 'FGTS a Recolher', 'ICMS a Recolher', 'PIS a Recolher', 'COFINS a Recolher', 'IRPJ a Recolher', 'CSLL a Recolher', 'Empréstimos Bancários (Curto Prazo)', 'Financiamentos a Pagar (Curto Prazo)', 'Duplicatas Descontadas', '(-) Encargos Financeiros a Transcorrer', 'Debêntures a Pagar', 'Adiantamento de Clientes', 'Dividendos a Pagar', 'Provisões Fiscais, Previdenciárias e Trabalhistas', 'Provisão para Garantias', 'IRPJ Diferido (Passivo)', 'CSLL Diferida (Passivo)',
+            // Patrimônio Líquido
+            'Capital Subscrito', '(-) Capital a Integralizar', 'Ágio na Emissão de Ações', 'Reserva Legal', 'Reserva Estatutária', 'Reservas para Contingências', 'Reservas de Lucros a Realizar', 'Reservas de Incentivos Fiscais', 'Lucros/Prejuízos Acumulados', '(-) Ações em Tesouraria', 'Ajustes de Avaliação Patrimonial',
+            // Receita
+            'Receita Bruta de Vendas', 'Receita de Serviços', 'Receitas Financeiras', 'Variação Cambial Ativa', 'Resultado da Equivalência Patrimonial (Positivo)', 'Receita com Dividendos', 'Juros Recebidos de Clientes', 'Descontos Financeiros Obtidos', 'Resultado na Venda de Imobilizado (Lucro)',
+            // Despesa / Custo
+            '(-) PIS sobre Faturamento', '(-) COFINS sobre Faturamento', '(-) ICMS sobre Vendas', '(-) Vendas Canceladas', '(-) Abatimentos sobre Vendas', 'Custo das Mercadorias Vendidas (CMV)', 'Custo dos Serviços Prestados (CSP)', 'Custo dos Produtos Vendidos (CPV)', 'Despesas com Pessoal (Salários)', 'Despesas com Comissões sobre Vendas', 'Despesas de Propaganda e Publicidade', 'Despesas com Aluguel', 'Despesa com Depreciação', 'Despesa com Amortização', 'Despesas com Seguros', 'Despesas de Energia Elétrica', 'Despesas Tributárias (IPTU, IOF)', 'Despesas com Provisões', 'Resultado na Venda de Imobilizado (Prejuízo)', 'Despesas Financeiras (Juros Pagos)', 'Variação Cambial Passiva', 'Descontos Concedidos a Clientes', 'Despesa com IRPJ Corrente', 'Despesa com CSLL Corrente'
+        ].sort();
+
+        let currentTransaction = null;
+        let score = 0;
+        let attempts = 0;
+
+        const descriptionEl = document.getElementById('transactionDescription');
+        const debitSelect = document.getElementById('debitAccount');
+        const creditSelect = document.getElementById('creditAccount');
+        const confirmButton = document.getElementById('confirmButton');
+        const feedbackEl = document.getElementById('feedback');
+        const scoreValueEl = document.getElementById('scoreValue');
+        const attemptsValueEl = document.getElementById('attemptsValue');
+
+        function populateSelects() {
+            debitSelect.innerHTML = '<option value="">Selecione a conta de débito...</option>';
+            creditSelect.innerHTML = '<option value="">Selecione a conta de crédito...</option>';
+            accounts.forEach(account => {
+                debitSelect.innerHTML += `<option value="${account}">${account}</option>`;
+                creditSelect.innerHTML += `<option value="${account}">${account}</option>`;
+            });
+        }
+
+        function setNextTransaction() {
+            const randomIndex = Math.floor(Math.random() * transactions.length);
+            currentTransaction = transactions[randomIndex];
+            descriptionEl.textContent = currentTransaction.description;
+            debitSelect.value = '';
+            creditSelect.value = '';
+            confirmButton.disabled = false;
+        }
+
+        function updateScore() {
+            scoreValueEl.textContent = score;
+            attemptsValueEl.textContent = attempts;
+        }
+
+        function showFeedback(correct) {
+            feedbackEl.style.opacity = '1';
+            feedbackEl.style.transform = 'scale(1)';
+            if (correct) {
+                feedbackEl.innerHTML = 'Lançamento Correto! ✅';
+                feedbackEl.className = 'feedback mt-6 text-center text-xl font-bold text-green-600 opacity-100 transform scale-100 h-12';
+            } else {
+                feedbackEl.innerHTML = `
+                    <div class="text-red-600">Incorreto! ❌ O lançamento certo é:</div>
+                    <div class="text-sm md:text-base text-slate-700 mt-1">
+                        <strong>D:</strong> ${currentTransaction.debit} | <strong>C:</strong> ${currentTransaction.credit}
+                    </div>
+                `;
+                feedbackEl.className = 'feedback mt-6 text-center text-xl font-bold opacity-100 transform scale-100 h-12';
+            }
+
+            setTimeout(() => {
+                feedbackEl.style.opacity = '0';
+                feedbackEl.style.transform = 'scale(0.9)';
+                setNextTransaction();
+            }, 4000); // Mais tempo para ler a resposta
+        }
+
+        confirmButton.addEventListener('click', () => {
+            const selectedDebit = debitSelect.value;
+            const selectedCredit = creditSelect.value;
+
+            if (!selectedDebit || !selectedCredit) {
+                alert('Por favor, selecione as contas de débito e crédito.');
+                return;
+            }
+
+            confirmButton.disabled = true;
+            attempts++;
+            const isCorrect = selectedDebit === currentTransaction.debit && selectedCredit === currentTransaction.credit;
+            
+            if (isCorrect) {
+                score++;
+            }
+            
+            updateScore();
+            showFeedback(isCorrect);
+        });
+
+        // Inicia o jogo
+        document.addEventListener('DOMContentLoaded', () => {
+            populateSelects();
+            setNextTransaction();
+            updateScore();
+        });
+    </script>
+</body>
+</html>
